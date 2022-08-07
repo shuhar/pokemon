@@ -15,10 +15,6 @@ const PORT= 8080;
 
 let api = "https://raw.githubusercontent.com/Biuni/PokemonGO-Pokedex/master/pokedex.json";
 let pokemons = [{}];
- console.log("equals:",equalsIgnoreOrder([1,2],[2,1,3]))
-
-
-
 fetchPokemon(api);
 
 // returns list of pokemon names || returns image, element type, spawn chance
@@ -48,7 +44,6 @@ app.get(`/`, async (req, res) => {
 //returns all pokemons that are WEEK to those element type
 app.get(`/weak`, async (req, res) => {
   let typeNameURL = req.query.typeName;
-
   try{
     pokemonsWeak = pokemons.filter(pokemon => pokemon.weaknesses.includes(typeNameURL) )
        res.send({
@@ -63,90 +58,81 @@ app.get(`/weak`, async (req, res) => {
 
 // returns all pokemons that are STRONG to those element type
 app.get(`/strong`, async (req, res) => {
-  let typeNameURL = req.query.typeName;
+    let typeNameURL = req.query.typeName;
 
-  try{
-    pokemonsWeak = pokemons.filter(pokemon => !pokemon.weaknesses.includes(typeNameURL) )
-       res.send({
-        pokemonsWeak
-      });
-    }catch(error){
-      res.end("pokemon not found!");
-      console.log(error);
-    }
+    try{
+      pokemonsWeak = pokemons.filter(pokemon => !pokemon.weaknesses.includes(typeNameURL) )
+        res.send({
+          pokemonsWeak
+        });
+      }catch(error){
+        res.end("pokemon not found!");
+        console.log(error);
+      }
 });
 
 // returns win / draw / lose
 app.post(`/figth/`, async ( req,res) => {
-  let message=[];
-  let error=false;
-  let mypokemonName = req.body.myPokemon;
-  let enemypokemonName = req.body.enemyPokemon;
-  if( !enemypokemonName){
-    error=true;
-    message.push({msg1:"please enter enemy pokemon!"});
-  }
-  if( !mypokemonName){
-    error=true;
-    message.push({msg:"please enter pokemon!"});
-  }
-  if(mypokemonName && enemypokemonName){
-    let myPokemon= pokemons.find(p => p.name === mypokemonName);
-    let enemyPokemon= pokemons.find(p => p.name === enemypokemonName);
-    if(!myPokemon){
+    let message=[];
+    let error=false;
+    let mypokemonName = req.body.myPokemon;
+    let enemypokemonName = req.body.enemyPokemon;
+    if( !enemypokemonName){
       error=true;
-      message.push({msg:"pokemon not found!"});
+      message.push({msg1:"please enter enemy pokemon!"});
     }
-    if(!enemyPokemon){
+    if( !mypokemonName){
       error=true;
-      message.push({msg1:"enemypokemon not found!"});
+      message.push({msg:"please enter pokemon!"});
     }
-    if(myPokemon && enemyPokemon){
-      if(equalsIgnoreOrder(myPokemon.weaknesses,enemyPokemon.weaknesses)){
+    if(mypokemonName && enemypokemonName){
+      let myPokemon= pokemons.find(p => p.name === mypokemonName);
+      let enemyPokemon= pokemons.find(p => p.name === enemypokemonName);
+      if(!myPokemon){
+        error=true;
+        message.push({msg:"pokemon not found!"});
+      }
+      if(!enemyPokemon){
+        error=true;
+        message.push({msg1:"enemypokemon not found!"});
+      }
+      if(myPokemon && enemyPokemon){
+        if(equalsIgnoreOrder(myPokemon.weaknesses,enemyPokemon.weaknesses)){
+          return res.end(JSON.stringify({
+            result:"draw"
+          }))
+        }
+        let win=0;
+        let lose=0;
+        myPokemon.type.forEach(t => {
+            if(enemyPokemon.weaknesses.includes(t)){
+              win++;
+            }
+        });
+
+        myPokemon.weaknesses.forEach(w => {
+          if(enemyPokemon.type.includes(w)){
+            lose++;
+          }
+      });
+      if(win>lose){
         return res.end(JSON.stringify({
-          result:"draw"
+          result:"win"
+        })) 
+      }else{
+        return res.end(JSON.stringify({
+          result:"lose"
         }))
       }
-      let win=0;
-      let lose=0;
-       myPokemon.type.forEach(t => {
-          if(enemyPokemon.weaknesses.includes(t)){
-            win++;
-          }
-       });
-
-       myPokemon.weaknesses.forEach(w => {
-        if(enemyPokemon.type.includes(w)){
-          lose++;
-        }
-        
-      
-     });
-     if(win>lose){
-      return res.end(JSON.stringify({
-        result:"win"
-      })) 
-    }else{
-      return res.end(JSON.stringify({
-        result:"lose"
-      }))
     }
-    }
-    
   }
-
-
-    if (error){
+  if (error){
       return res.end(JSON.stringify(message))
-    }
-
-  
-
- 
+  }
 });
 
-app.listen(PORT, () => console.log(`Server runnin on port ${PORT}`));
 
+// fetch pokemons list 
 function fetchPokemon(api){
   fetch(api)
   .then(function(res) {
@@ -154,10 +140,9 @@ function fetchPokemon(api){
   })
   .then(function(json) {
     pokemons = json.pokemon;
-    //console.log(pokemons);
   });
 }
-
+// function to compare weaknesses 
 function equalsIgnoreOrder (a, b) {
   if (a.length !== b.length) return false;
   const uniqueValues = new Set([...a, ...b]);
@@ -168,3 +153,5 @@ function equalsIgnoreOrder (a, b) {
   }
   return true;
 }
+
+app.listen(PORT, () => console.log(`Server runnin on port ${PORT}`));
